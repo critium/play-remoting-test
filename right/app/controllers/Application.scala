@@ -1,6 +1,7 @@
 package controllers
 
 import actors._;
+import com.typesafe.config._
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
@@ -57,12 +58,14 @@ object Application extends Controller {
     Ok("hi");
   }
 
+  // RIGHT
   def invokeActorFuture(id: Long) = Action {
     AsyncResult {
-      implicit val timeout = Timeout(5.seconds)
-      //val system = ActorSystem.create("master", ConfigFactory.load().getConfig("master"))
-      val system = ActorSystem("MySystem")
-      val myActor = system.actorSelection("akka.tcp://MySystem@localhost:2552/user/helloWorldFuture")
+      implicit val timeout = Timeout(60.seconds)
+      val config = ConfigFactory.load()
+      val system = ActorSystem("right", config.getConfig("rightConfig"))
+      //val system = ActorSystem("MySystem")
+      val myActor = system.actorSelection("akka.tcp://left@127.0.0.1:12552/user/helloWorldFuture")
       // this creates an actor.
       //val myActor = Akka.system.actorOf(Props[HelloWorldFuture], name = "helloWorldFuture")
       //val future: Future[String] = ask(myActor, id).mapTo[String]

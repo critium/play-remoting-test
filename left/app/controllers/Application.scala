@@ -1,8 +1,8 @@
 package controllers
 
 import actors._;
-import akka.actor.Actor
-import akka.actor.Props
+import com.typesafe.config._
+import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
 import models.Task
@@ -58,10 +58,33 @@ object Application extends Controller {
     Ok("hi");
   }
 
-  def invokeActorFuture(id: Long) = Action {
+  def invokeActorFutureLocal(id: Long) = Action {
     AsyncResult {
       implicit val timeout = Timeout(5.seconds)
-      val myActor = Akka.system.actorOf(Props[HelloWorldFuture], name = "helloWorldFuture")
+      val config = ConfigFactory.load()
+      //val app1 = ActorSystem("MyApp1", config.getConfig("myapp1").withFallback(config))
+      val system = ActorSystem("MySystem", config.getConfig("MySystem"))
+    //println(system.settings);
+    val myActor = Akka.system.actorOf(Props[HelloWorldFuture], name = "helloWorldFuture")
+    //val future: Future[String] = ask(myActor, id).mapTo[String]
+    val scalaFuture = (myActor ? id).mapTo[String]
+    myActor.tell(PoisonPill, myActor);
+    scalaFuture.map { test =>
+      Ok(test)
+    }
+    }
+  }
+
+  // LEFT
+  def invokeActorFuture(id: Long) = Action {
+    AsyncResult {
+      implicit val timeout = Timeout(60.seconds)
+      val config = ConfigFactory.load()
+      val system = ActorSystem("left", config.getConfig("leftConfig"))
+      //val system = ActorSystem("MySystem")
+      val myActor = system.actorSelection("akka.tcp://left@127.0.0.1:12552/user/helloWorldFuture")
+      // this creates an actor.
+      //val myActor = Akka.system.actorOf(Props[HelloWorldFuture], name = "helloWorldFuture")
       //val future: Future[String] = ask(myActor, id).mapTo[String]
       val scalaFuture = (myActor ? id).mapTo[String]
       scalaFuture.map { test =>
