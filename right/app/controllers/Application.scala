@@ -18,6 +18,13 @@ import play.api.mvc._
 import scala.concurrent.Await
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import org.fusesource.scalate._
+import org.fusesource.scalate.util._
+import java.io._
+
+import collection.JavaConverters._
+import de.neuland.jade4j._
+
 
 
 
@@ -58,21 +65,52 @@ object Application extends Controller {
     Ok("hi");
   }
 
+  def actorInit():ActorSelection ={
+    val config = ConfigFactory.load()
+    val system = ActorSystem("right", config.getConfig("rightConfig"))
+    //val system = ActorSystem("MySystem")
+    system.actorSelection("akka.tcp://left@127.0.0.1:12552/user/helloWorldFuture")
+  }
+
+  //val theActor: Option[ActorRef] = None;
+  val theActor = actorInit()
+
   // RIGHT
   def invokeActorFuture(id: Long) = Action {
     AsyncResult {
       implicit val timeout = Timeout(60.seconds)
-      val config = ConfigFactory.load()
-      val system = ActorSystem("right", config.getConfig("rightConfig"))
-      //val system = ActorSystem("MySystem")
-      val myActor = system.actorSelection("akka.tcp://left@127.0.0.1:12552/user/helloWorldFuture")
-      // this creates an actor.
-      //val myActor = Akka.system.actorOf(Props[HelloWorldFuture], name = "helloWorldFuture")
       //val future: Future[String] = ask(myActor, id).mapTo[String]
-      val scalaFuture = (myActor ? id).mapTo[String]
+      val localActor = theActor;
+      val scalaFuture = (localActor ? id).mapTo[String]
       scalaFuture.map { test =>
         Ok(test)
       }
     }
   }
+
+
+  ////////////////////
+  // SCALATRA Stuff //
+  ////////////////////
+  val engine = new TemplateEngine
+  engine.resourceLoader = new FileResourceLoader(List(new File("/tmp/jade")))
+  engine.classpath = "tmp/classes"
+  //engine.workingDirectory = new File("/tmp/jade")
+  engine.workingDirectory = Play.getFile("tmp")
+  //engine.combinedClassPath = true
+  engine.classLoader = Play.classloader
+  def testDynamicCompile() = Action {
+    val sw = new StringWriter;
+    val pw:PrintWriter = new PrintWriter(sw)
+    engine.layout(uri="/index.jade", out=pw, attributes=Map(("title","Hello world!")))
+    Ok(pw.toString)
+  }
+
+  def jade4j() = Action {
+    val html = Jade4J.render("/tmp/jade/jade4j.jade":String, Map(("title","Hello world!":Object)).asJava:java.util.Map[String, Object]);
+    Ok(html)
+  }
+
+
+
 }

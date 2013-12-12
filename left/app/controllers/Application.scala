@@ -75,16 +75,22 @@ object Application extends Controller {
     }
   }
 
+  def actorInit():ActorSelection ={
+      val config = ConfigFactory.load()
+      val system = ActorSystem("left")
+      //DOESNT WORK - ADDRESS BIND val system = ActorSystem("left", config.getConfig("leftConfig"))
+      //DOESNT WORK val system = ActorSystem("MySystem")
+      //DOESNT WORK DEAD LETTER val myActor = system.actorSelection("akka://left@127.0.0.1:12552/user/helloWorldFuture")
+      system.actorSelection("/user/helloWorldFuture")
+  }
+
+  //val theActor: Option[ActorRef] = None;
+  val theActor = actorInit()
+
   // LEFT
   def invokeActorFuture(id: Long) = Action {
     AsyncResult {
       implicit val timeout = Timeout(60.seconds)
-      val config = ConfigFactory.load()
-      val system = ActorSystem("left", config.getConfig("leftConfig"))
-      //val system = ActorSystem("MySystem")
-      val myActor = system.actorSelection("akka.tcp://left@127.0.0.1:12552/user/helloWorldFuture")
-      // this creates an actor.
-      //val myActor = Akka.system.actorOf(Props[HelloWorldFuture], name = "helloWorldFuture")
       //val future: Future[String] = ask(myActor, id).mapTo[String]
       val scalaFuture = (myActor ? id).mapTo[String]
       scalaFuture.map { test =>

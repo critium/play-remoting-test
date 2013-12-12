@@ -19,3 +19,5 @@ GET     /assets/*file               controllers.Assets.at(path="/public", file)
 
 GET     /test/:id               controllers.Application.invokeActor(id:Long)
 GET     /testF/:id              controllers.Application.invokeActorFuture(id:Long)
+GET     /testDC                 controllers.Application.testDynamicCompile
+GET     /testj4j                controllers.Application.jade4j
