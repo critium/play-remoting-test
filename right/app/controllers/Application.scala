@@ -60,11 +60,18 @@ object Application extends Controller {
     Redirect(routes.Application.tasks)
   }
 
+  /////////////////////////////////////////////////////////
+  // invoke the actor, and get a future object to return //
+  /////////////////////////////////////////////////////////
   def invokeActor(id: Long) = Action {
     val myActor = Akka.system.actorOf(Props[HelloWorld], name = "helloWorld")
     Ok("hi");
   }
 
+  // RIGHT
+  /////////////////////////////////////////////////////////
+  // invoke the remote actor, and get a future object to return //
+  /////////////////////////////////////////////////////////
   def actorInit():ActorSelection ={
     val config = ConfigFactory.load()
     val system = ActorSystem("right", config.getConfig("rightConfig"))
@@ -75,7 +82,6 @@ object Application extends Controller {
   //val theActor: Option[ActorRef] = None;
   val theActor = actorInit()
 
-  // RIGHT
   def invokeActorFuture(id: Long) = Action {
     AsyncResult {
       implicit val timeout = Timeout(60.seconds)
@@ -100,14 +106,26 @@ object Application extends Controller {
   //engine.combinedClassPath = true
   engine.classLoader = Play.classloader
   def testDynamicCompile() = Action {
+    // This is blowing up!
+    // Why because it looks like scala 2.10.0 reflection is incompatible with scala 2.10.2.
+    // Why scala thought to break the API on a point point release is beyond me.
     val sw = new StringWriter;
     val pw:PrintWriter = new PrintWriter(sw)
     engine.layout(uri="/index.jade", out=pw, attributes=Map(("title","Hello world!")))
     Ok(pw.toString)
   }
 
+  //////////////////
+  // JADE4J STUFF //
+  //////////////////
   def jade4j() = Action {
-    val html = Jade4J.render("/tmp/jade/jade4j.jade":String, Map(("title","Hello world!":Object)).asJava:java.util.Map[String, Object]);
+    // this reades from the path
+    val html = Jade4J.render(
+      "/tmp/jade/jade4j.jade":String, Map(("title","Hello world!":Object)).asJava:java.util.Map[String, Object]
+    );
+
+    // to read from a stream, need to override templateloader
+    // which is cool because we can DL from S3 or from DB
     Ok(html)
   }
 
